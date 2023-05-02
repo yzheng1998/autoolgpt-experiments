@@ -183,6 +183,7 @@ def load_variables(config_file="config.yaml"):
 def construct_prompt():
     """Construct the prompt for the AI to respond to"""
     config = AIConfig.load()
+    print('config is ' + json.dumps(config))
     if config.ai_name:
         logger.typewriter_log(
             f"Welcome back! ",

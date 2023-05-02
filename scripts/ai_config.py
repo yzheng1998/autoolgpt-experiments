@@ -12,7 +12,7 @@ class AIConfig:
         ai_goals (list): The list of objectives the AI is supposed to complete.
     """
 
-    def __init__(self, ai_name: str="", ai_role: str="", ai_goals: list=[]) -> None:
+    def __init__(self, ai_name: str="", ai_role: str="", ai_goals: list=[], ai_memory: list=[]) -> None:
         """
         Initialize a class instance
 
@@ -20,6 +20,7 @@ class AIConfig:
             ai_name (str): The name of the AI.
             ai_role (str): The description of the AI's role.
             ai_goals (list): The list of objectives the AI is supposed to complete.
+            ai_memory(list): dumps the memory of the AI
         Returns:
             None
         """
@@ -27,6 +28,7 @@ class AIConfig:
         self.ai_name = ai_name
         self.ai_role = ai_role
         self.ai_goals = ai_goals
+        self.ai_memory = ai_memory
 
     # Soon this will go in a folder where it remembers more stuff about the run(s)
     SAVE_FILE = os.path.join(os.path.dirname(__file__), '..', 'ai_settings.yaml')
@@ -54,8 +56,11 @@ class AIConfig:
         ai_name = config_params.get("ai_name", "")
         ai_role = config_params.get("ai_role", "")
         ai_goals = config_params.get("ai_goals", [])
+        ai_memory = config_params.get("ai_memory", [])
+        print('LOADS')
+        print(ai_memory)
 
-        return cls(ai_name, ai_role, ai_goals)
+        return cls(ai_name, ai_role, ai_goals, ai_memory)
 
     def save(self, config_file: str=SAVE_FILE) -> None:
         """
@@ -67,8 +72,9 @@ class AIConfig:
         Returns:
             None
         """
-
-        config = {"ai_name": self.ai_name, "ai_role": self.ai_role, "ai_goals": self.ai_goals}
+        print('saving')
+        print(self.ai_memory)
+        config = {"ai_name": self.ai_name, "ai_role": self.ai_role, "ai_goals": self.ai_goals, "ai_memory": self.ai_memory}
         with open(config_file, "w") as file:
             yaml.dump(config, file)
 

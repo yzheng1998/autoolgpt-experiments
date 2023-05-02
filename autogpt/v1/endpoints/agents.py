@@ -194,19 +194,19 @@ def load_variables(config_file="config.yaml"):
 def construct_prompt():
     """Construct the prompt for the AI to respond to"""
     config = AIConfig.load()
-    if config.ai_name:
-        logger.typewriter_log(
-            f"Welcome back! ",
-            Fore.GREEN,
-            f"Would you like me to return to being {config.ai_name}?",
-            speak_text=True)
-        should_continue = utils.clean_input(f"""Continue with the last settings?
-Name:  {config.ai_name}
-Role:  {config.ai_role}
-Goals: {config.ai_goals}
-Continue (y/n): """)
-        if should_continue.lower() == "n":
-            config = AIConfig()
+#     if config.ai_name:
+#         logger.typewriter_log(
+#             f"Welcome back! ",
+#             Fore.GREEN,
+#             f"Would you like me to return to being {config.ai_name}?",
+#             speak_text=True)
+#         should_continue = utils.clean_input(f"""Continue with the last settings?
+# Name:  {config.ai_name}
+# Role:  {config.ai_role}
+# Goals: {config.ai_goals}
+# Continue (y/n): """)
+#         if should_continue.lower() == "n":
+#             config = AIConfig()
 
     if not config.ai_name:
         config = prompt_user()
@@ -217,7 +217,7 @@ Continue (y/n): """)
     ai_name = config.ai_name
 
     full_prompt = config.construct_full_prompt()
-    return full_prompt
+    return full_prompt, config.ai_memory
 
 
 def prompt_user():
@@ -332,23 +332,24 @@ async def create_agent(body: Dict): # TODO pydantify this when we have a clear d
     agent = AIConfig(
         ai_name=body["ai_name"],
         ai_role=body["ai_role"],
-        ai_goals=["ai_goals"])
+        ai_goals=body["ai_goals"])
     agent.save()
 
     return JSONResponse(
         content={"message": "Agent created", "id": 1})  # only one main agent is supported for now
 
 @router.post("/sendAction")
-async def send_action(): # TODO pydantify this when we have a clear definition of the request pattern.
+async def send_action(body: Dict): # TODO pydantify this when we have a clear definition of the request pattern.
     # TODO: fill in llm values here
+    
     check_openai_api_key()
     parse_arguments()
     logger.set_level(logging.DEBUG if cfg.debug_mode else logging.INFO)
     ai_name = ""
-    prompt = construct_prompt()
+    prompt, full_message_history = construct_prompt() # send the custom config
     # print(prompt)
     # Initialize variables
-    full_message_history = []
+    # full_message_history = []
     result = None
     next_action_count = 0
     # Make a constant:
@@ -357,7 +358,9 @@ async def send_action(): # TODO pydantify this when we have a clear definition o
     # Initialize memory and make sure it is empty.
     # this is particularly important for indexing and referencing pinecone memory
     memory = get_memory(cfg, init=True)
+    # print('memory is ' + memory)
     print('Using memory of type: ' + memory.__class__.__name__)
+    # print('memory ' + json.dumps(memorsy))
 
     # Interaction Loop
     # Send message to AI, get response
@@ -454,4 +457,12 @@ async def send_action(): # TODO pydantify this when we have a clear definition o
             chat.create_chat_message(
                 "system", "Unable to execute command"))
         logger.typewriter_log("SYSTEM: ", Fore.YELLOW, "Unable to execute command")
+    print('new memory ' + json.dumps(full_message_history))
+    agent = AIConfig(
+        ai_name=body["ai_name"],
+        ai_role=body["ai_role"],
+        ai_goals=body["ai_goals"],
+        ai_memory=full_message_history)
+    # SAVE THE USER AGENT
+    agent.save()
     return result
