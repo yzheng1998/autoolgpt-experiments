@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from fastapi.staticfiles import StaticFiles
 from autogpt.v1.router import api_router as api_router_v1
+from fastapi.middleware.cors import CORSMiddleware
 
 from autogpt.lifetime import register_shutdown_event, register_startup_event
 
@@ -25,6 +26,14 @@ def get_app() -> FastAPI:
         redoc_url=None,
         openapi_url="/api/openapi.json",
         default_response_class=ORJSONResponse
+    )
+    # Allow all origins to access the API
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     # api_router.add_websocket_route("/ws", websocket_endpoint, name="websocket")
     # Adds startup and shutdown events.

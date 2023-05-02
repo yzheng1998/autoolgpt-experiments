@@ -30,16 +30,6 @@ from logger import logger
 import logging
 
 router = APIRouter()
-app = FastAPI()
-
-# Allow all origins to access the API
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://127.0.0.1:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 cfg = Config()
 
@@ -343,7 +333,7 @@ def parse_arguments():
             cfg.memory_backend = chosen
 
 
-@app.post("/newAgent")
+@router.post("/newAgent")
 async def create_agent(body: Dict): # TODO pydantify this when we have a clear definition of the request pattern.
     agent = AIConfig(
         ai_name=body["ai_name"],
@@ -359,7 +349,7 @@ async def create_agent(body: Dict): # TODO pydantify this when we have a clear d
     return JSONResponse(
         content={"message": "New agent created. Use /trigger to start the agent", "id": 1}, headers=headers)  # only one main agent is supported for now
 
-@app.post("/trigger")
+@router.post("/trigger")
 async def send_action(): # TODO pydantify this when we have a clear definition of the request pattern.
     # TODO: fill in llm values here
     
