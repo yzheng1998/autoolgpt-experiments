@@ -134,17 +134,20 @@ def create_message(chunk, question):
 
 
 def summarize_text(text, question):
+    thoughts = []
     """Summarize text using the LLM model"""
     if not text:
         return "Error: No text to summarize"
 
     text_length = len(text)
+    thoughts.append(f"Text length: {text_length} characters")
     print(f"Text length: {text_length} characters")
 
     summaries = []
     chunks = list(split_text(text))
 
     for i, chunk in enumerate(chunks):
+        thoughts.append(f"Summarizing chunk {i + 1} / {len(chunks)}")
         print(f"Summarizing chunk {i + 1} / {len(chunks)}")
         messages = [create_message(chunk, question)]
 
@@ -154,7 +157,7 @@ def summarize_text(text, question):
             max_tokens=300,
         )
         summaries.append(summary)
-
+    thoughts.append(f"Summarized {len(chunks)} chunks.")
     print(f"Summarized {len(chunks)} chunks.")
 
     combined_summary = "\n".join(summaries)
@@ -166,4 +169,4 @@ def summarize_text(text, question):
         max_tokens=300,
     )
 
-    return final_summary
+    return {"summary": final_summary, "thoughts": thoughts}

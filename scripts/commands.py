@@ -83,6 +83,7 @@ def execute_command(command_name, arguments):
         elif command_name == "read_file":
             return read_file(arguments["file"])
         elif command_name == "write_to_file":
+            return arguments["text"] # dont write to file! instead o
             return write_to_file(arguments["file"], arguments["text"])
         elif command_name == "append_to_file":
             return append_to_file(arguments["file"], arguments["text"])

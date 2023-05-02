@@ -40,7 +40,7 @@ def write_to_file(filename, text):
             os.makedirs(directory)
         with open(filepath, "w", encoding='utf-8') as f:
             f.write(text)
-        return "File written to successfully."
+        return "Written: " + text
     except Exception as e:
         return "Error: " + str(e)
 
@@ -51,7 +51,7 @@ def append_to_file(filename, text):
         filepath = safe_join(working_directory, filename)
         with open(filepath, "a") as f:
             f.write(text)
-        return "Text appended successfully."
+        return "Appended: " + text
     except Exception as e:
         return "Error: " + str(e)
 

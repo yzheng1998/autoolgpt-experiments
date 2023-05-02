@@ -71,6 +71,7 @@ def attempt_to_fix_json_by_finding_outermost_brackets(json_string):
 
 def print_assistant_thoughts(assistant_reply):
     """Prints the assistant's thoughts to the console"""
+    thoughts = []
     global ai_name
     global cfg
     try:
@@ -78,7 +79,7 @@ def print_assistant_thoughts(assistant_reply):
             # Parse and print Assistant response
             assistant_reply_json = fix_and_parse_json(assistant_reply)
         except json.JSONDecodeError as e:
-            logger.error("Error: Invalid JSON in assistant thoughts\n", assistant_reply)
+            thoughts.append("Error: Invalid JSON in assistant thoughts\n" + assistant_reply)
             assistant_reply_json = attempt_to_fix_json_by_finding_outermost_brackets(assistant_reply)
             assistant_reply_json = fix_and_parse_json(assistant_reply_json)
 
@@ -87,7 +88,7 @@ def print_assistant_thoughts(assistant_reply):
             try:
                 assistant_reply_json = json.loads(assistant_reply_json)
             except json.JSONDecodeError as e:
-                logger.error("Error: Invalid JSON\n", assistant_reply)
+                thoughts.append("Error: Invalid JSON\n" + assistant_reply)
                 assistant_reply_json = attempt_to_fix_json_by_finding_outermost_brackets(assistant_reply_json)
 
         assistant_thoughts_reasoning = None
@@ -103,11 +104,11 @@ def print_assistant_thoughts(assistant_reply):
             assistant_thoughts_criticism = assistant_thoughts.get("criticism")
             assistant_thoughts_speak = assistant_thoughts.get("speak")
 
-        logger.typewriter_log(f"{ai_name.upper()} THOUGHTS:", Fore.YELLOW, assistant_thoughts_text)
-        logger.typewriter_log("REASONING:", Fore.YELLOW, assistant_thoughts_reasoning)
+        thoughts.append(" THOUGHTS: " + assistant_thoughts_text)
+        thoughts.append("REASONING: " +  assistant_thoughts_reasoning)
 
         if assistant_thoughts_plan:
-            logger.typewriter_log("PLAN:", Fore.YELLOW, "")
+            thoughts.append("PLAN")
             # If it's a list, join it into a string
             if isinstance(assistant_thoughts_plan, list):
                 assistant_thoughts_plan = "\n".join(assistant_thoughts_plan)
@@ -118,14 +119,16 @@ def print_assistant_thoughts(assistant_reply):
             lines = assistant_thoughts_plan.split('\n')
             for line in lines:
                 line = line.lstrip("- ")
-                logger.typewriter_log("- ", Fore.GREEN, line.strip())
+                thoughts.append("-" + line.strip())
 
-        logger.typewriter_log("CRITICISM:", Fore.YELLOW, assistant_thoughts_criticism)
+                # logger.typewriter_log("- ", Fore.GREEN, line.strip())
+        thoughts.append("CRITICISM " + assistant_thoughts_criticism)
+        # logger.typewriter_log("CRITICISM:", Fore.YELLOW, assistant_thoughts_criticism)
         # Speak the assistant's thoughts
         if cfg.speak_mode and assistant_thoughts_speak:
             speak.say_text(assistant_thoughts_speak)
 
-        return assistant_reply_json
+        return assistant_reply_json, thoughts
     except json.decoder.JSONDecodeError as e:
         logger.error("Error: Invalid JSON\n", assistant_reply)
         if cfg.speak_mode:
@@ -135,6 +138,7 @@ def print_assistant_thoughts(assistant_reply):
     except Exception as e:
         call_stack = traceback.format_exc()
         logger.error("Error: \n", call_stack)
+        return undefined, thoughts
 
 
 def load_variables(config_file="config.yaml"):
@@ -354,6 +358,8 @@ async def send_action(): # TODO pydantify this when we have a clear definition o
     # Make a constant:
     user_input = "Determine which next command to use, and respond using the format specified above:"
 
+    # keep track of the thoughts to return as part of our response
+    thoughts = ""
     # Initialize memory and make sure it is empty.
     # this is particularly important for indexing and referencing pinecone memory
     memory = get_memory(cfg, init=True)
@@ -370,7 +376,7 @@ async def send_action(): # TODO pydantify this when we have a clear definition o
             cfg.fast_token_limit) # TODO: This hardcodes the model to use GPT3.5. Make this an argument
 
     # Print Assistant thoughts
-    print_assistant_thoughts(assistant_reply)
+    assistant_reply_json, thoughts = print_assistant_thoughts(assistant_reply)
 
     # Get command name and arguments
     try:
@@ -385,20 +391,22 @@ async def send_action(): # TODO pydantify this when we have a clear definition o
         # Get key press: Prompt the user to press enter to continue or escape
         # to exit
         user_input = ""
-        logger.typewriter_log(
-            "NEXT ACTION: ",
-            Fore.CYAN,
-            f"COMMAND = {Fore.CYAN}{command_name}{Style.RESET_ALL}  ARGUMENTS = {Fore.CYAN}{arguments}{Style.RESET_ALL}")
+        thoughts.append("NEXT ACTION: COMMAND = " + command_name + "  ARGUMENTS = " + json.dumps(arguments))
+        # logger.typewriter_log(
+        #     "NEXT ACTION: ",
+        #     Fore.CYAN,
+        #     f"COMMAND = {Fore.CYAN}{command_name}{Style.RESET_ALL}  ARGUMENTS = {Fore.CYAN}{arguments}{Style.RESET_ALL}")
         # print(
         #     f"Enter 'y' to authorise command, 'y -N' to run N continuous commands, 'n' to exit program, or enter feedback for {ai_name}...",
         #     flush=True)
         user_input = "GENERATE NEXT COMMAND JSON"
 
         if user_input == "GENERATE NEXT COMMAND JSON":
-            logger.typewriter_log(
-            "-=-=-=-=-=-=-= COMMAND AUTHORISED BY USER -=-=-=-=-=-=-=",
-            Fore.MAGENTA,
-            "")
+            # logger.typewriter_log(
+            # "-=-=-=-=-=-=-= COMMAND AUTHORISED BY USER -=-=-=-=-=-=-=",
+            # Fore.MAGENTA,
+            # "")
+            thoughts.append("-=-=-=-=-=-=-= EXECUTING COMMAND -=-=-=-=-=-=-=")
         elif user_input == "EXIT":
             print("Exiting...", flush=True)
             return ("EARLY EXIT")
@@ -443,4 +451,4 @@ async def send_action(): # TODO pydantify this when we have a clear definition o
         ai_memory=full_message_history)
     # SAVE THE USER AGENT
     agent.save()
-    return result
+    return result, thoughts
