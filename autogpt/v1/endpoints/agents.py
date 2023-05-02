@@ -2,7 +2,10 @@ import sys
 sys.path.append("scripts/")
 from starlette.responses import JSONResponse
 from typing import Dict
-from fastapi import APIRouter
+# from fastapi import APIRouter
+from fastapi import FastAPI, APIRouter, Response
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from scripts.ai_config import AIConfig
 from main import * 
 
@@ -27,6 +30,16 @@ from logger import logger
 import logging
 
 router = APIRouter()
+app = FastAPI()
+
+# Allow all origins to access the API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 cfg = Config()
@@ -339,8 +352,13 @@ async def create_agent(body: Dict): # TODO pydantify this when we have a clear d
         ai_goals=body["ai_goals"])
     agent.save()
 
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST",
+        "Access-Control-Allow-Headers": "Content-Type"
+    }
     return JSONResponse(
-        content={"message": "New agent created. Use /trigger to start the agent", "id": 1})  # only one main agent is supported for now
+        content={"message": "New agent created. Use /trigger to start the agent", "id": 1}, headers=headers)  # only one main agent is supported for now
 
 @router.post("/trigger")
 async def send_action(): # TODO pydantify this when we have a clear definition of the request pattern.
@@ -451,4 +469,6 @@ async def send_action(): # TODO pydantify this when we have a clear definition o
         ai_memory=full_message_history)
     # SAVE THE USER AGENT
     agent.save()
-    return result, thoughts
+    response_data = [result, thoughts]
+    headers = {"Access-Control-Allow-Origin": "*"}
+    return JSONResponse(content=response_data, headers=headers)
