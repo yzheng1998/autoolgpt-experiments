@@ -217,7 +217,7 @@ def construct_prompt():
     ai_name = config.ai_name
 
     full_prompt = config.construct_full_prompt()
-    return full_prompt, config.ai_memory
+    return config, full_prompt, config.ai_memory
 
 
 def prompt_user():
@@ -327,7 +327,7 @@ def parse_arguments():
             cfg.memory_backend = chosen
 
 
-@router.post("/agents")
+@router.post("/newAgent")
 async def create_agent(body: Dict): # TODO pydantify this when we have a clear definition of the request pattern.
     agent = AIConfig(
         ai_name=body["ai_name"],
@@ -336,18 +336,17 @@ async def create_agent(body: Dict): # TODO pydantify this when we have a clear d
     agent.save()
 
     return JSONResponse(
-        content={"message": "Agent created", "id": 1})  # only one main agent is supported for now
+        content={"message": "New agent created. Use /trigger to start the agent", "id": 1})  # only one main agent is supported for now
 
-@router.post("/sendAction")
-async def send_action(body: Dict): # TODO pydantify this when we have a clear definition of the request pattern.
+@router.post("/trigger")
+async def send_action(): # TODO pydantify this when we have a clear definition of the request pattern.
     # TODO: fill in llm values here
     
     check_openai_api_key()
     parse_arguments()
     logger.set_level(logging.DEBUG if cfg.debug_mode else logging.INFO)
     ai_name = ""
-    prompt, full_message_history = construct_prompt() # send the custom config
-    # print(prompt)
+    config, prompt, full_message_history = construct_prompt() # send the custom config
     # Initialize variables
     # full_message_history = []
     result = None
@@ -358,9 +357,7 @@ async def send_action(body: Dict): # TODO pydantify this when we have a clear de
     # Initialize memory and make sure it is empty.
     # this is particularly important for indexing and referencing pinecone memory
     memory = get_memory(cfg, init=True)
-    # print('memory is ' + memory)
     print('Using memory of type: ' + memory.__class__.__name__)
-    # print('memory ' + json.dumps(memorsy))
 
     # Interaction Loop
     # Send message to AI, get response
@@ -392,29 +389,10 @@ async def send_action(body: Dict): # TODO pydantify this when we have a clear de
             "NEXT ACTION: ",
             Fore.CYAN,
             f"COMMAND = {Fore.CYAN}{command_name}{Style.RESET_ALL}  ARGUMENTS = {Fore.CYAN}{arguments}{Style.RESET_ALL}")
-        print(
-            f"Enter 'y' to authorise command, 'y -N' to run N continuous commands, 'n' to exit program, or enter feedback for {ai_name}...",
-            flush=True)
-        while True:
-            console_input = utils.clean_input(Fore.MAGENTA + "Input:" + Style.RESET_ALL)
-            if console_input.lower().rstrip() == "y":
-                user_input = "GENERATE NEXT COMMAND JSON"
-                break
-            elif console_input.lower().startswith("y -"):
-                try:
-                    next_action_count = abs(int(console_input.split(" ")[1]))
-                    user_input = "GENERATE NEXT COMMAND JSON"
-                except ValueError:
-                    print("Invalid input format. Please enter 'y -n' where n is the number of continuous tasks.")
-                    continue
-                break
-            elif console_input.lower() == "n":
-                user_input = "EXIT"
-                break
-            else:
-                user_input = console_input
-                command_name = "human_feedback"
-                break
+        # print(
+        #     f"Enter 'y' to authorise command, 'y -N' to run N continuous commands, 'n' to exit program, or enter feedback for {ai_name}...",
+        #     flush=True)
+        user_input = "GENERATE NEXT COMMAND JSON"
 
         if user_input == "GENERATE NEXT COMMAND JSON":
             logger.typewriter_log(
@@ -457,11 +435,11 @@ async def send_action(body: Dict): # TODO pydantify this when we have a clear de
             chat.create_chat_message(
                 "system", "Unable to execute command"))
         logger.typewriter_log("SYSTEM: ", Fore.YELLOW, "Unable to execute command")
-    print('new memory ' + json.dumps(full_message_history))
+
     agent = AIConfig(
-        ai_name=body["ai_name"],
-        ai_role=body["ai_role"],
-        ai_goals=body["ai_goals"],
+        ai_name=config.ai_name,
+        ai_role=config.ai_role,
+        ai_goals=config.ai_goals,
         ai_memory=full_message_history)
     # SAVE THE USER AGENT
     agent.save()

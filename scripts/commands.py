@@ -113,7 +113,8 @@ def execute_command(command_name, arguments):
         elif command_name == "do_nothing":
             return "No action performed."
         elif command_name == "task_complete":
-            shutdown()
+            return "Task has completed."
+            # shutdown()
         else:
             return f"Unknown command '{command_name}'. Please refer to the 'COMMANDS' list for available commands and only respond in the specified JSON format."
     # All errors, return "Error: + error message"

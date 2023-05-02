@@ -57,8 +57,6 @@ class AIConfig:
         ai_role = config_params.get("ai_role", "")
         ai_goals = config_params.get("ai_goals", [])
         ai_memory = config_params.get("ai_memory", [])
-        print('LOADS')
-        print(ai_memory)
 
         return cls(ai_name, ai_role, ai_goals, ai_memory)
 
@@ -72,8 +70,6 @@ class AIConfig:
         Returns:
             None
         """
-        print('saving')
-        print(self.ai_memory)
         config = {"ai_name": self.ai_name, "ai_role": self.ai_role, "ai_goals": self.ai_goals, "ai_memory": self.ai_memory}
         with open(config_file, "w") as file:
             yaml.dump(config, file)
